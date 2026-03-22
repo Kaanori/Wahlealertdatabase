@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WhaleDB">
+<meta name="theme-color" content="#0a0a0f">
+<title>🐋 Whale Alert DB</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f; --bg2:#0d1118; --bg3:#111820; --border:#1a2a3a;
+  --accent:#00ff99; --accent2:#00aaff; --accent3:#ff6644;
+  --text:#c8d8e8; --text2:#7a9ab0; --text3:#3a5a6a;
+  --red:#ff4444; --green:#44cc88; --orange:#f7931a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.scroll::-webkit-scrollbar{width:3px;}
+.scroll::-webkit-scrollbar-thumb{background:#00ff9933;border-radius:2px;}
+
+/* HEADER */
+#header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:#080c12;border-bottom:1px solid var(--border);
+  padding:max(env(safe-area-inset-top),12px) 12px 10px;
+}
+.header-inner{display:flex;align-items:center;gap:8px;}
+.logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;color:var(--accent);letter-spacing:3px;text-shadow:0 0 20px #00ff9955;}
+#status{font-size:10px;color:#4a8a6a;margin-left:auto;white-space:nowrap;}
+.hbtn{background:none;border:1px solid var(--border);color:var(--text2);font-family:inherit;font-size:11px;padding:5px 9px;border-radius:4px;cursor:pointer;letter-spacing:1px;flex-shrink:0;}
+.hbtn.green{border-color:#00ff9944;color:var(--accent);background:#00ff9911;}
+.hbtn.red{border-color:#ff444433;color:var(--red);}
+
+/* TABS */
+#tabs{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:#080c12;border-top:1px solid var(--border);
+  display:flex;padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.tab{flex:1;background:none;border:none;border-top:2px solid transparent;
+  color:var(--text3);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:1px;padding:11px 4px 8px;cursor:pointer;transition:all .15s;}
+.tab.active{color:var(--accent);border-top-color:var(--accent);}
+
+/* PAGES */
+#main{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.page.active{display:flex;}
+.page-inner{padding-top:calc(max(env(safe-area-inset-top),12px) + 42px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 48px);display:flex;flex-direction:column;height:100%;}
+
+/* FILTER BAR */
+.filterbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+.filterbar select,.filterbar input{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:11px;padding:5px 7px;border-radius:4px;outline:none;}
+.filterbar input{flex:1;min-width:80px;}
+.filterbar select:focus,.filterbar input:focus{border-color:var(--accent);}
+
+/* TX LIST */
+.tx-item{padding:11px 12px;border-bottom:1px solid #111820;cursor:pointer;}
+.tx-item:active,.tx-item.sel{background:#0d1e30;}
+.tx-item.sel{border-left:2px solid var(--accent);}
+.tx-r1{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.coin-badge{font-size:10px;font-weight:bold;padding:2px 5px;border-radius:3px;}
+.tx-usd{color:var(--accent);font-weight:bold;font-size:14px;margin-left:auto;}
+.tx-r2{display:flex;gap:5px;font-size:10px;color:var(--text2);padding-left:26px;}
+.abar{display:flex;gap:1px;margin-left:auto;}
+.aseg{width:4px;height:8px;border-radius:1px;}
+
+/* BOTTOM SHEET */
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:#0d1520;border-top:2px solid var(--accent);
+  border-radius:16px 16px 0 0;
+  max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  padding-bottom:max(env(safe-area-inset-bottom),16px);
+}
+.sheet.open{transform:translateY(0);}
+.sheet.blue-top{border-top-color:var(--accent2);}
+.sheet.yellow-top{border-top-color:#ffcc00;}
+.handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 14px;}
+.sheet-body{padding:0 16px 16px;}
+.close-btn{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px;}
+.dfield{margin-bottom:9px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.dlabel{font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:3px;}
+.dval{font-size:12px;color:var(--text);word-break:break-all;}
+.ext-link{display:block;margin:10px 0;padding:9px;background:#0a2040;border:1px solid #0055aa;color:#4499ff;text-decoration:none;border-radius:5px;font-size:11px;text-align:center;letter-spacing:1px;}
+
+/* AI BUTTON */
+.ai-btn{width:100%;padding:11px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:12px;letter-spacing:1px;margin-bottom:8px;border:none;}
+.ai-btn.g{background:#00ff9915;border:1px solid #00ff9933;color:var(--accent);}
+.ai-btn.b{background:#00aaff15;border:1px solid #00aaff33;color:var(--accent2);}
+.ai-note{border-radius:5px;padding:12px;font-size:11px;line-height:1.7;}
+.ai-note.g{background:#0a1a10;border:1px solid #00ff9933;color:#a0d0b8;}
+.ai-note.b{background:#0a1220;border:1px solid #00aaff33;color:#90c0e0;}
+.ai-note.err{background:#1a0a0a;border:1px solid #ff444433;color:var(--red);}
+
+/* WALLET */
+.wallet-item{padding:11px 12px;border-bottom:1px solid #111820;cursor:pointer;}
+.wallet-item:active,.wallet-item.sel{background:#0d2030;}
+.wallet-item.sel{border-left:2px solid var(--accent2);}
+.w-stats{display:flex;gap:10px;margin-top:4px;font-size:10px;flex-wrap:wrap;}
+.wtype{font-size:9px;padding:2px 5px;border-radius:3px;flex-shrink:0;}
+.wex{background:#002244;color:#4488ff;border:1px solid #004488;}
+.wan{background:#1a1a00;color:#bbbb00;border:1px solid #333300;}
+.label-box{background:#0a1a28;border:1px solid #1a3a50;border-radius:5px;padding:10px;margin-bottom:12px;}
+.linput{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:7px 9px;border-radius:4px;outline:none;margin-top:5px;}
+.linput:focus{border-color:var(--accent);}
+.lbtnrow{display:flex;gap:6px;margin-top:7px;}
+.lbtn{background:none;border:1px solid var(--border);color:var(--text2);font-family:inherit;font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer;}
+.lbtn.ok{border-color:#00ff9944;color:var(--accent);}
+.hist-item{background:var(--bg);border-radius:5px;padding:9px;margin-bottom:6px;border-left:2px solid var(--border);}
+.hist-item.in{border-left-color:var(--green);}
+.hist-item.out{border-left-color:var(--accent3);}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:10px;}
+.smini{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:11px;}
+.slabel{font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:4px;}
+.sval{font-size:19px;font-weight:bold;font-family:'Rajdhani',sans-serif;}
+.barrow{margin-bottom:8px;}
+.barlabel{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;}
+.bartrack{height:3px;background:var(--border);border-radius:2px;}
+.barfill{height:100%;border-radius:2px;}
+.typerow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.topr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #131d28;cursor:pointer;}
+
+/* SETTINGS */
+.settings-page{padding:16px;}
+.sgroup{background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:14px;}
+.sgroup-title{font-size:9px;color:var(--text3);letter-spacing:2px;padding:11px 14px 8px;border-bottom:1px solid var(--border);}
+.srow{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.srow:last-child{border-bottom:none;}
+.srow-label{flex:1;font-size:12px;color:var(--text);}
+.srow-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+.sinput{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;margin-top:6px;}
+.sinput:focus{border-color:var(--accent);}
+.sbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:inherit;font-size:11px;padding:8px 14px;border-radius:4px;cursor:pointer;width:100%;margin-top:8px;letter-spacing:1px;}
+.sbtn.ok{border-color:#00ff9944;color:var(--accent);background:#00ff9911;}
+.sbtn.red{border-color:#ff444433;color:var(--red);}
+.provider-opt{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;}
+.provider-opt:last-child{border-bottom:none;}
+.provider-opt.active{background:#001a10;}
+.radio-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.radio-dot.on{border-color:var(--accent);}
+.radio-dot.on::after{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;}
+.provider-name{font-size:12px;color:var(--text);}
+.provider-sub{font-size:10px;color:var(--text3);}
+
+/* OVERLAY */
+#overlay{position:fixed;inset:0;background:#000a;z-index:150;display:none;}
+#overlay.show{display:block;}
+
+/* MISC */
+.spinner{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.blink{animation:blink 1s step-end infinite;}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fi .2s ease;}
+#toast{position:fixed;top:68px;left:50%;transform:translateX(-50%);background:var(--accent);color:#000;font-size:11px;letter-spacing:1px;padding:6px 16px;border-radius:20px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;}
+
+/* CORS WARNING */
+.cors-warn{background:#1a1200;border:1px solid #ffcc0044;border-radius:5px;padding:10px;font-size:10px;line-height:1.6;color:#ccaa44;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="header-inner">
+    <div class="logo">🐋 WHALE DB</div>
+    <div id="status"><span class="blink">●</span> <span id="cnt">0</span> TX · <span id="wcnt">0</span> W</div>
+    <button class="hbtn green" onclick="fetchLatest()" id="fetchBtn">↻ FETCH</button>
+    <button class="hbtn" onclick="showTab('settings')" title="Einstellungen">⚙</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="overlay" onclick="closePanels()"></div>
+
+<!-- TX Detail Sheet -->
+<div class="sheet" id="tx-sheet">
+  <button class="close-btn" onclick="closePanels()">×</button>
+  <div class="handle"></div>
+  <div class="sheet-body" id="tx-detail"></div>
+</div>
+
+<!-- Wallet Sheet -->
+<div class="sheet blue-top" id="w-sheet">
+  <button class="close-btn" onclick="closePanels()">×</button>
+  <div class="handle"></div>
+  <div class="sheet-body" id="w-detail"></div>
+</div>
+
+<div id="main">
+  <!-- TX PAGE -->
+  <div class="page active" id="page-tx">
+    <div class="page-inner">
+      <div class="filterbar">
+        <input type="text" id="txSearch" placeholder="🔍 Suche..." oninput="renderTx()">
+        <select id="fCoin" onchange="renderTx()"><option value="ALL">Alle Coins</option></select>
+        <select id="fType" onchange="renderTx()"><option value="ALL">Alle Typen</option></select>
+        <select id="fMin" onchange="renderTx()">
+          <option value="0">Min $: alle</option>
+          <option value="1000000">1M+</option>
+          <option value="50000000">50M+</option>
+          <option value="100000000">100M+</option>
+          <option value="500000000">500M+</option>
+        </select>
+      </div>
+      <div class="scroll" id="tx-list" style="flex:1"></div>
+    </div>
+  </div>
+
+  <!-- WALLETS PAGE -->
+  <div class="page" id="page-wallets">
+    <div class="page-inner">
+      <div class="filterbar">
+        <input type="text" id="wSearch" placeholder="🔍 Wallet..." oninput="renderWallets()">
+        <select id="wFilter" onchange="renderWallets()">
+          <option value="ALL">Alle</option>
+          <option value="ex">Nur Börsen</option>
+          <option value="anon">Nur Anonym</option>
+        </select>
+      </div>
+      <div class="scroll" id="wallet-list" style="flex:1"></div>
+    </div>
+  </div>
+
+  <!-- STATS PAGE -->
+  <div class="page" id="page-stats">
+    <div class="page-inner">
+      <div class="scroll" id="stats-body" style="flex:1;padding:12px"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="page-inner">
+      <div class="scroll" style="flex:1">
+        <div class="settings-page">
+
+          <div class="sgroup">
+            <div class="sgroup-title">KI ANBIETER</div>
+            <div id="provider-list"></div>
+          </div>
+
+          <div class="sgroup" id="api-config-box">
+            <div class="sgroup-title">API KONFIGURATION</div>
+            <div class="srow" style="flex-direction:column;align-items:stretch">
+              <div class="srow-label">API Key</div>
+              <div class="srow-sub">Wird nur lokal gespeichert (localStorage)</div>
+              <input class="sinput" type="password" id="apiKeyInput" placeholder="sk-ant-... / sk-... / dein Key">
+              <div id="custom-url-row" style="display:none">
+                <div class="srow-label" style="margin-top:10px">Custom Endpoint URL</div>
+                <div class="srow-sub">OpenAI-kompatible API (z.B. Ollama, LM Studio, OpenRouter)</div>
+                <input class="sinput" id="customUrlInput" placeholder="http://localhost:11434/v1/chat/completions">
+                <div class="srow-label" style="margin-top:10px">Modell Name</div>
+                <input class="sinput" id="customModelInput" placeholder="llama3, mistral, ...">
+              </div>
+              <button class="sbtn ok" onclick="saveApiConfig()" style="margin-top:10px">✓ Speichern</button>
+            </div>
+          </div>
+
+          <div class="sgroup">
+            <div class="sgroup-title">CORS HINWEIS</div>
+            <div class="srow" style="flex-direction:column;align-items:stretch">
+              <div class="cors-warn">
+                ⚠ Browser blockieren direkte API-Anfragen an externe Dienste (CORS).<br><br>
+                <b>Lösung A:</b> Anthropic & OpenAI erlauben API-Calls aus dem Browser – API Key direkt eintragen, funktioniert sofort.<br><br>
+                <b>Lösung B (Custom):</b> Lokaler Proxy oder Ollama mit <code>OLLAMA_ORIGINS=*</code> starten.<br><br>
+                <b>Lösung C:</b> App über einen lokalen Webserver ausführen (z.B. <code>python3 -m http.server</code>).
+              </div>
+            </div>
+          </div>
+
+          <div class="sgroup">
+            <div class="sgroup-title">VERBINDUNGSTEST</div>
+            <div class="srow" style="flex-direction:column;align-items:stretch">
+              <button class="sbtn" onclick="testConnection()" id="testBtn">▶ Verbindung testen</button>
+              <div id="testResult" style="margin-top:8px;font-size:11px;line-height:1.5"></div>
+            </div>
+          </div>
+
+          <div class="sgroup">
+            <div class="sgroup-title">DATENBANK</div>
+            <div class="srow" style="flex-direction:column;align-items:stretch;gap:7px">
+              <button class="sbtn" onclick="exportData()">⬇ Export (JSON)</button>
+              <button class="sbtn" onclick="document.getElementById('importFile').click()">⬆ Import (JSON)</button>
+              <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+              <button class="sbtn red" onclick="resetData()">✕ Daten zurücksetzen</button>
+            </div>
+          </div>
+
+          <div style="text-align:center;font-size:10px;color:var(--text3);padding:10px 0">
+            Whale Alert DB v2.0 · Daten in localStorage
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tabs">
+  <button class="tab active" onclick="showTab('tx',this)">TX</button>
+  <button class="tab" onclick="showTab('wallets',this)">WALLETS</button>
+  <button class="tab" onclick="showTab('stats',this)">STATS</button>
+  <button class="tab" onclick="showTab('settings',this)">⚙</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════
+const COIN_COLORS={BTC:"#f7931a",ETH:"#627eea",USDT:"#26a17b",USDC:"#2775ca",SolvBTC:"#f7931a",OKB:"#0052ff",COMMODITY:"#888"};
+const TYPE_LABELS={transfer:"Transfer",mint:"Mint",dormant:"Dormant Wallet",exploit:"Exploit",news:"News/Analyse"};
+const CHAIN_ICON={bitcoin:"₿",ethereum:"Ξ",solana:"◎",unknown:"?"};
+
+const PROVIDERS=[
+  {id:"anthropic", name:"Anthropic (Claude)", sub:"claude-sonnet-4-20250514", url:"https://api.anthropic.com/v1/messages", type:"anthropic"},
+  {id:"openai",    name:"OpenAI (ChatGPT)",   sub:"gpt-4o-mini",              url:"https://api.openai.com/v1/chat/completions", type:"openai"},
+  {id:"custom",    name:"Custom / Lokal",      sub:"OpenAI-kompatibel",        url:"", type:"custom"},
+];
+
+const SEED=[
+  {id:"98521",time:"18:24",coin:"USDC",amount:250000000,usd:249975333,from:"USDC Treasury",to:"USDC Treasury",type:"mint",chain:"solana",emoji:"💵",alertLevel:10,txHash:"4XuLkd6QxvazHMpZ1GLtgVbz91PPzqaidTPLyYXJbpmi9G486BKH8eHUwymYRdTff3PiqxhdsiWBg8PeJDmTVzP3",detailUrl:"https://whale-alert.io/transaction/solana/4XuLkd6QxvazHMpZ1GLtgVbz91PPzqaidTPLyYXJbpmi9G486BKH8eHUwymYRdTff3PiqxhdsiWBg8PeJDmTVzP3"},
+  {id:"98522",time:"18:26",coin:"USDC",amount:250000000,usd:249971493,from:"USDC Treasury",to:"USDC Treasury",type:"mint",chain:"solana",emoji:"💵",alertLevel:10,txHash:"3yJw1dT4TvhQyzF8HyREKKKg4k79rCSktqZPJ7oxw4tmLraDEfwQ9LwRL3BQK174qhhxHhRgsqZR534HMs7GDnRv",detailUrl:"https://whale-alert.io/transaction/solana/3yJw1dT4TvhQyzF8HyREKKKg4k79rCSktqZPJ7oxw4tmLraDEfwQ9LwRL3BQK174qhhxHhRgsqZR534HMs7GDnRv"},
+  {id:"98523",time:"19:32",coin:"BTC",amount:716,usd:50939640,from:"unknown wallet",to:"Coinbase",type:"transfer",chain:"bitcoin",emoji:"🚨",alertLevel:3,txHash:"95805bdf75b6ab8046bf1c8e9e3ed43b30517904c96720cb79a7fe95f8e2e7c5",detailUrl:"https://whale-alert.io/transaction/bitcoin/95805bdf75b6ab8046bf1c8e9e3ed43b30517904c96720cb79a7fe95f8e2e7c5"},
+  {id:"98524",time:"19:33",coin:"BTC",amount:1816,usd:129102472,from:"unknown wallet",to:"Coinbase Institutional",type:"transfer",chain:"bitcoin",emoji:"🚨",alertLevel:6,txHash:"876bfd4bebd0bd78ba1a7f4ff7c61eed15346b7e42309c8ce7c295852be83875",detailUrl:"https://whale-alert.io/transaction/bitcoin/876bfd4bebd0bd78ba1a7f4ff7c61eed15346b7e42309c8ce7c295852be83875"},
+  {id:"98525",time:"21:22",coin:"BTC",amount:719,usd:51453381,from:"Coinbase Institutional",to:"unknown wallet",type:"transfer",chain:"bitcoin",emoji:"🚨",alertLevel:3,txHash:"6bdcd57ee7fbf6285f9796b45c5918680d4884966feb4c79ec4197c7b073a475",detailUrl:"https://whale-alert.io/transaction/bitcoin/6bdcd57ee7fbf6285f9796b45c5918680d4884966feb4c79ec4197c7b073a475"},
+  {id:"98526",time:"21:35",coin:"BTC",amount:719,usd:51451907,from:"Coinbase Institutional",to:"unknown wallet",type:"transfer",chain:"bitcoin",emoji:"🚨",alertLevel:3,txHash:"e5104fb3b166cf5ae8c1b1607ae4b1777373a8a90f87712eca7ef8a97effc1a2",detailUrl:"https://whale-alert.io/transaction/bitcoin/e5104fb3b166cf5ae8c1b1607ae4b1777373a8a90f87712eca7ef8a97effc1a2"},
+  {id:"98527",time:"23:30",coin:"ETH",amount:401,usd:835369,from:"dormant pre-mine (2015)",to:"activated",type:"dormant",chain:"ethereum",emoji:"💤",alertLevel:0,txHash:"0xae4657170f2d100fd84e6c302a3842dea1a4bab311623758ad868d2511ff0ec9",detailUrl:"https://whale-alert.io/transaction/ethereum/0xae4657170f2d100fd84e6c302a3842dea1a4bab311623758ad868d2511ff0ec9"},
+  {id:"98528",time:"23:39",coin:"USDC",amount:300031391,usd:299948883,from:"unknown wallet",to:"unknown wallet",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:10,txHash:"0x512e624ad60ed33be447a7694b0a41233ea3f89047b2e9ecd3c8a0318940cf2e",detailUrl:"https://whale-alert.io/transaction/ethereum/0x512e624ad60ed33be447a7694b0a41233ea3f89047b2e9ecd3c8a0318940cf2e"},
+  {id:"98529",time:"23:41",coin:"USDC",amount:211326647,usd:211305620,from:"unknown wallet",to:"unknown wallet",type:"transfer",chain:"solana",emoji:"🚨",alertLevel:9,txHash:"2MyUGQtgYWLprHdfEmDJYLuhQpCskrsC8hBnnn3KMH95tdLYdo55sgDSFo4JZ9YZdHNTUkrWJ6D839Eq3JCYVTbv",detailUrl:"https://whale-alert.io/transaction/solana/2MyUGQtgYWLprHdfEmDJYLuhQpCskrsC8hBnnn3KMH95tdLYdo55sgDSFo4JZ9YZdHNTUkrWJ6D839Eq3JCYVTbv"},
+  {id:"98530",time:"23:42",coin:"USDC",amount:403849884,usd:403810105,from:"unknown wallet",to:"unknown wallet",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:10,txHash:"0xc1035fce10181ef446976fbb884dda04d6266f7bd7646d4a7fce776136d150d9",detailUrl:"https://whale-alert.io/transaction/ethereum/0xc1035fce10181ef446976fbb884dda04d6266f7bd7646d4a7fce776136d150d9"},
+  {id:"98531",time:"00:04",coin:"USDC",amount:403849884,usd:403769114,from:"unknown wallet",to:"unknown wallet",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:10,txHash:"0xc6ccfa678c9f17f7b303f5a188510226c36b622cba7572502076c274fb4626ea",detailUrl:"https://whale-alert.io/transaction/ethereum/0xc6ccfa678c9f17f7b303f5a188510226c36b622cba7572502076c274fb4626ea"},
+  {id:"98532",time:"00:05",coin:"USDC",amount:226000000,usd:225977400,from:"unknown wallet",to:"unknown wallet",type:"transfer",chain:"solana",emoji:"🚨",alertLevel:10,txHash:"4gKxr1gpn6apWabnW8mzxikJRuWgvZryUr4x74qKCCxvGq6JiDVe4pC8iTXXcSWegeGRFmiF7qr7x665v4Km14VA",detailUrl:"https://whale-alert.io/transaction/solana/4gKxr1gpn6apWabnW8mzxikJRuWgvZryUr4x74qKCCxvGq6JiDVe4pC8iTXXcSWegeGRFmiF7qr7x665v4Km14VA"},
+  {id:"98533",time:"00:09",coin:"USDC",amount:300000000,usd:299955750,from:"unknown wallet",to:"unknown wallet",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:10,txHash:"0xf501297428718d3a60965480216d7f8953ea45fd71d3c62d712a4a7cb9055401",detailUrl:"https://whale-alert.io/transaction/ethereum/0xf501297428718d3a60965480216d7f8953ea45fd71d3c62d712a4a7cb9055401"},
+  {id:"98534",time:"04:52",coin:"SolvBTC",amount:38.05,usd:2700000,from:"Solv Protocol exploit",to:"attacker",type:"exploit",chain:"unknown",emoji:"📉",alertLevel:0,txHash:"",detailUrl:"https://whale-alert.io/stories/a1930152ef64f7/Solv-Protocol-exploited-for-27M-via-excessive-mint-bug-offers-10-bounty-for-return-of-3805-SolvBTC"},
+  {id:"98535",time:"06:43",coin:"USDT",amount:131444033,usd:131435160,from:"Binance",to:"Ceffu",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:6,txHash:"0xf0483a7fc8063f60eb72237410565c4b6c9f7e890c7c790b37659d7437ba8790",detailUrl:"https://whale-alert.io/transaction/ethereum/0xf0483a7fc8063f60eb72237410565c4b6c9f7e890c7c790b37659d7437ba8790"},
+  {id:"98536",time:"06:45",coin:"USDC",amount:224590201,usd:224567518,from:"Binance",to:"Ceffu",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:9,txHash:"0x77fd883c353f260659e953e7692335bd9632127044da2793d8270f0afeff64cc",detailUrl:"https://whale-alert.io/transaction/ethereum/0x77fd883c353f260659e953e7692335bd9632127044da2793d8270f0afeff64cc"},
+  {id:"98537",time:"06:51",coin:"BTC",amount:2308,usd:163323096,from:"Ceffu",to:"Binance",type:"transfer",chain:"bitcoin",emoji:"🚨",alertLevel:7,txHash:"6f208a9d459f217a37ee0dbdfd38c50524b659e00a9899041c34278cbc33a045",detailUrl:"https://whale-alert.io/transaction/bitcoin/6f208a9d459f217a37ee0dbdfd38c50524b659e00a9899041c34278cbc33a045"},
+  {id:"98538",time:"07:17",coin:"USDT",amount:200000000,usd:199982600,from:"unknown wallet",to:"Binance",type:"transfer",chain:"ethereum",emoji:"🚨",alertLevel:8,txHash:"0x45768c9b02e0de9187f063f44fa2882536fac664facede56a11fd4cfc1dbe8cf",detailUrl:"https://whale-alert.io/transaction/ethereum/0x45768c9b02e0de9187f063f44fa2882536fac664facede56a11fd4cfc1dbe8cf"},
+  {id:"98539",time:"07:33",coin:"OKB",amount:0,usd:640000000,from:"ICE/NYSE investment",to:"OKX",type:"news",chain:"unknown",emoji:"📈",alertLevel:0,txHash:"",detailUrl:"https://whale-alert.io/stories/ac93014f17ec20/NYSE-parent-ICE-takes-board-seat-in-OKX-after-investing-at-25B-valuation-OKB-jumps-23-and-adds-640M-in-market-value"},
+  {id:"98540",time:"08:25",coin:"COMMODITY",amount:0,usd:0,from:"JPMorgan",to:"market",type:"news",chain:"unknown",emoji:"📈",alertLevel:0,txHash:"",detailUrl:"https://whale-alert.io/stories/b29301f79a0133/JPMorgan-warns-Iran-conflict-could-quickly-lift-aluminum-toward-4000ton-oil-and-gold-also-face-upside"},
+];
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let db=[], wallets=[], walletLabels={};
+let apiKey="", providerId="anthropic", customUrl="", customModel="llama3";
+let selTxId=null, selWId=null;
+
+function fmt(n){if(!n||isNaN(n))return"0";if(n>=1e9)return(n/1e9).toFixed(2)+"B";if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(1)+"K";return n.toFixed(2);}
+function fmtUSD(n){return"$"+fmt(n);}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+// ════════════════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════════════════
+function load(){
+  try{const d=localStorage.getItem("whale_db");if(d){const p=JSON.parse(d);if(p.length>0){db=p;return;}}}catch(e){}
+  db=JSON.parse(JSON.stringify(SEED));save();
+}
+function save(){try{localStorage.setItem("whale_db",JSON.stringify(db));}catch(e){}}
+function loadLabels(){try{const d=localStorage.getItem("whale_labels");if(d)walletLabels=JSON.parse(d);}catch(e){}}
+function saveLabels(){try{localStorage.setItem("whale_labels",JSON.stringify(walletLabels));}catch(e){}}
+function loadApiCfg(){
+  try{
+    const d=localStorage.getItem("whale_api");
+    if(d){const p=JSON.parse(d);apiKey=p.key||"";providerId=p.provider||"anthropic";customUrl=p.customUrl||"";customModel=p.customModel||"llama3";}
+  }catch(e){}
+}
+function saveApiCfg(){
+  try{localStorage.setItem("whale_api",JSON.stringify({key:apiKey,provider:providerId,customUrl,customModel}));}catch(e){}
+}
+
+// ════════════════════════════════════════════════
+// WALLET BUILDER
+// ════════════════════════════════════════════════
+function buildWallets(){
+  const map={};
+  function upsert(name,chain,role,tx){
+    if(!name||["market","activated"].includes(name))return;
+    const key=name.toLowerCase().replace(/\s+/g,"_");
+    if(!map[key])map[key]={id:key,name,chain,totalSent:0,totalReceived:0,txCount:0,coins:new Set(),counterparties:new Set(),history:[],firstSeen:tx.time,lastSeen:tx.time,isExchange:/coinbase|binance|kraken|bitfinex|ceffu|okx|treasury/i.test(name)};
+    const w=map[key];
+    w.txCount++;w.coins.add(tx.coin);w.lastSeen=tx.time;
+    if(role==="from"){w.totalSent+=tx.usd;w.counterparties.add(tx.to);w.history.push({dir:"out",txId:tx.id,time:tx.time,coin:tx.coin,amount:tx.amount,usd:tx.usd,counterparty:tx.to,txHash:tx.txHash,detailUrl:tx.detailUrl});}
+    else{w.totalReceived+=tx.usd;w.counterparties.add(tx.from);w.history.push({dir:"in",txId:tx.id,time:tx.time,coin:tx.coin,amount:tx.amount,usd:tx.usd,counterparty:tx.from,txHash:tx.txHash,detailUrl:tx.detailUrl});}
+  }
+  db.forEach(tx=>{if(tx.type==="news")return;upsert(tx.from,tx.chain,"from",tx);if(tx.to!==tx.from)upsert(tx.to,tx.chain,"to",tx);});
+  wallets=Object.values(map).map(w=>({...w,coins:[...w.coins],counterparties:[...w.counterparties],history:w.history.sort((a,b)=>b.txId-a.txId),netFlow:w.totalReceived-w.totalSent,label:walletLabels[w.id]||""})).sort((a,b)=>(b.totalSent+b.totalReceived)-(a.totalSent+a.totalReceived));
+}
+function updateCounts(){document.getElementById("cnt").textContent=db.length;document.getElementById("wcnt").textContent=wallets.length;}
+
+// ════════════════════════════════════════════════
+// API CALL (multi-provider)
+// ════════════════════════════════════════════════
+async function callAI(prompt){
+  if(!apiKey)throw new Error("Kein API Key – bitte in ⚙ Einstellungen eintragen");
+  const p=PROVIDERS.find(x=>x.id===providerId)||PROVIDERS[0];
+
+  if(p.type==="anthropic"){
+    const r=await fetch(p.url,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:prompt}]})});
+    if(!r.ok){const e=await r.text();throw new Error(`HTTP ${r.status}: ${e.slice(0,200)}`);}
+    const d=await r.json();return d.content?.map(c=>c.text||"").join("")||"(keine Antwort)";
+  }
+
+  if(p.type==="openai"||p.type==="custom"){
+    const url=p.type==="custom"?(customUrl||"http://localhost:11434/v1/chat/completions"):p.url;
+    const model=p.type==="custom"?customModel:"gpt-4o-mini";
+    const headers={"Content-Type":"application/json"};
+    if(apiKey)headers["Authorization"]="Bearer "+apiKey;
+    const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({model,max_tokens:800,messages:[{role:"user",content:prompt}]})});
+    if(!r.ok){const e=await r.text();throw new Error(`HTTP ${r.status}: ${e.slice(0,200)}`);}
+    const d=await r.json();return d.choices?.[0]?.message?.content||"(keine Antwort)";
+  }
+  throw new Error("Unbekannter Provider");
+}
+
+// ════════════════════════════════════════════════
+// RENDER TX
+// ════════════════════════════════════════════════
+function populateFilters(){
+  const coins=["ALL",...new Set(db.map(e=>e.coin))];
+  const types=["ALL",...new Set(db.map(e=>e.type))];
+  const cs=document.getElementById("fCoin"),ts=document.getElementById("fType");
+  const pc=cs.value,pt=ts.value;
+  cs.innerHTML=coins.map(c=>`<option value="${c}">${c==="ALL"?"Alle Coins":c}</option>`).join("");
+  ts.innerHTML=types.map(t=>`<option value="${t}">${t==="ALL"?"Alle Typen":(TYPE_LABELS[t]||t)}</option>`).join("");
+  if(coins.includes(pc))cs.value=pc;if(types.includes(pt))ts.value=pt;
+}
+function getFiltered(){
+  const q=document.getElementById("txSearch").value.toLowerCase();
+  const coin=document.getElementById("fCoin").value;
+  const type=document.getElementById("fType").value;
+  const min=Number(document.getElementById("fMin").value);
+  return db.filter(e=>{
+    if(coin!=="ALL"&&e.coin!==coin)return false;
+    if(type!=="ALL"&&e.type!==type)return false;
+    if(e.usd<min)return false;
+    if(q&&!`${e.coin} ${e.from} ${e.to} ${e.txHash}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function renderTx(){
+  const list=getFiltered();
+  document.getElementById("tx-list").innerHTML=list.length===0
+    ?`<div style="padding:40px;text-align:center;color:var(--text3)">KEINE EINTRÄGE</div>`
+    :list.map(e=>{
+      const cc=COIN_COLORS[e.coin]||"#aaa";
+      const segs=Array.from({length:10},(_,j)=>`<div class="aseg" style="background:${j<e.alertLevel?(e.alertLevel>=8?"#ff4444":e.alertLevel>=5?"#ffaa00":"#00ff99"):"#1a2530"}"></div>`).join("");
+      return`<div class="tx-item fi${selTxId===e.id?" sel":""}" onclick="openTx('${esc(e.id)}')">
+        <div class="tx-r1">
+          <span style="font-size:15px;width:20px;text-align:center">${e.emoji}</span>
+          <span class="coin-badge" style="color:${cc};background:${cc}22">${esc(e.coin)}</span>
+          <span style="font-size:10px;color:var(--text2)">${CHAIN_ICON[e.chain]||"?"}</span>
+          <div class="abar">${segs}</div>
+          <span class="tx-usd">${fmtUSD(e.usd)}</span>
+        </div>
+        <div class="tx-r2">
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.from)}</span>
+          <span style="color:var(--text3)">→</span>
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.to)}</span>
+          <span style="color:var(--text3);margin-left:auto">${esc(e.time)}</span>
+        </div>
+      </div>`;
+    }).join("");
+}
+
+function openTx(id){
+  selTxId=id;
+  const e=db.find(x=>x.id===id);
+  if(!e)return;
+  renderTx();
+  const cc=COIN_COLORS[e.coin]||"#aaa";
+  document.getElementById("tx-detail").innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:26px">${e.emoji}</span>
+      <span style="font-size:20px;font-weight:bold;font-family:'Rajdhani',sans-serif;color:${cc}">${esc(e.coin)}</span>
+      <span style="font-size:10px;color:var(--text3)">${TYPE_LABELS[e.type]||e.type}</span>
+      <button onclick="deleteTx('${esc(e.id)}')" style="margin-left:auto;background:none;border:1px solid #ff444433;color:var(--red);font-family:inherit;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer">✕</button>
+    </div>
+    ${[["Menge",`${fmt(e.amount)} ${esc(e.coin)}`],["USD-Wert",fmtUSD(e.usd)],["Von",esc(e.from)],["Zu",esc(e.to)],["Chain",`${CHAIN_ICON[e.chain]||"?"} ${esc(e.chain)}`],["Typ",TYPE_LABELS[e.type]||e.type],["Zeit",esc(e.time)],["Alert Level",e.alertLevel+"/10"]].map(([k,v])=>`<div class="dfield"><div class="dlabel">${k}</div><div class="dval">${v}</div></div>`).join("")}
+    ${e.txHash?`<div class="dfield"><div class="dlabel">TX HASH</div><div class="dval" style="font-size:10px;color:var(--text3)">${esc(e.txHash)}</div></div>`:""}
+    ${e.detailUrl?`<a href="${esc(e.detailUrl)}" target="_blank" class="ext-link">↗ Details auf whale-alert.io</a>`:""}
+    <button class="ai-btn g" onclick="doAiTx('${esc(e.id)}')" id="ai-tx-btn">🤖 KI Analyse</button>
+    <div id="ai-tx-out"></div>
+  `;
+  document.getElementById("tx-sheet").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+
+async function doAiTx(id){
+  const e=db.find(x=>x.id===id);if(!e)return;
+  const btn=document.getElementById("ai-tx-btn"),out=document.getElementById("ai-tx-out");
+  btn.disabled=true;btn.innerHTML=`<span class="spinner"></span>Analysiere...`;out.innerHTML="";
+  try{
+    const txt=await callAI(`Analysiere diese Whale Alert Transaktion kurz auf Deutsch (max 5 Sätze): Coin: ${e.coin}, Amount: ${fmt(e.amount)} (${fmtUSD(e.usd)}), Von: ${e.from}, Zu: ${e.to}, Typ: ${e.type}, Chain: ${e.chain}, Alert Level: ${e.alertLevel}/10. Bullish/bearish/neutral?`);
+    out.innerHTML=`<div class="ai-note g">${esc(txt)}</div>`;
+  }catch(err){out.innerHTML=`<div class="ai-note err">⚠ ${esc(err.message)}</div>`;}
+  btn.disabled=false;btn.innerHTML="🤖 KI Analyse";
+}
+
+function deleteTx(id){
+  if(!confirm("Eintrag löschen?"))return;
+  db=db.filter(e=>e.id!==id);
+  save();buildWallets();updateCounts();populateFilters();renderTx();renderWallets();renderStats();
+  closePanels();toast("Gelöscht");
+}
+
+// ════════════════════════════════════════════════
+// RENDER WALLETS
+// ════════════════════════════════════════════════
+function renderWallets(){
+  const q=document.getElementById("wSearch").value.toLowerCase();
+  const f=document.getElementById("wFilter").value;
+  const list=wallets.filter(w=>{
+    if(f==="ex"&&!w.isExchange)return false;
+    if(f==="anon"&&w.isExchange)return false;
+    if(q&&!`${w.name} ${w.label} ${w.coins.join(" ")}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+  document.getElementById("wallet-list").innerHTML=list.length===0
+    ?`<div style="padding:40px;text-align:center;color:var(--text3)">KEINE WALLETS</div>`
+    :list.map(w=>{
+      const net=w.netFlow>=0;
+      return`<div class="wallet-item fi${selWId===w.id?" sel":""}" onclick="openWallet('${esc(w.id)}')">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(w.label||w.name)}</div>
+            ${w.label?`<div style="font-size:10px;color:var(--text3)">${esc(w.name)}</div>`:""}
+          </div>
+          <span class="wtype ${w.isExchange?"wex":"wan"}">${w.isExchange?"BÖRSE":"ANON"}</span>
+        </div>
+        <div class="w-stats">
+          <span style="color:var(--accent3)">▼ ${fmtUSD(w.totalSent)}</span>
+          <span style="color:var(--green)">▲ ${fmtUSD(w.totalReceived)}</span>
+          <span style="color:${net?"var(--green)":"var(--red)"};font-weight:bold">${net?"+":""}${fmtUSD(w.netFlow)}</span>
+          <span style="color:var(--text3);margin-left:auto">${w.txCount} TX · ${CHAIN_ICON[w.chain]||"?"}</span>
+        </div>
+      </div>`;
+    }).join("");
+}
+
+function openWallet(id){
+  selWId=id;
+  const w=wallets.find(x=>x.id===id);if(!w)return;
+  renderWallets();
+  const net=w.netFlow>=0;
+  document.getElementById("w-detail").innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:17px;font-weight:bold;font-family:'Rajdhani',sans-serif;color:var(--accent2)">${esc(w.label||w.name)}</div>
+      ${w.label?`<div style="font-size:10px;color:var(--text3)">${esc(w.name)}</div>`:""}
+    </div>
+    <div class="label-box">
+      <div class="dlabel">EIGENES LABEL</div>
+      <input class="linput" id="lInput" value="${esc(w.label||"")}" placeholder="z.B. Satoshi Wallet">
+      <div class="lbtnrow">
+        <button class="lbtn ok" onclick="saveWalletLabel('${esc(w.id)}')">✓ Speichern</button>
+        <button class="lbtn" onclick="saveWalletLabel('${esc(w.id)}','')">✕ Löschen</button>
+      </div>
+    </div>
+    ${[["Typ",w.isExchange?"🏦 Börse":"❓ Anonym"],["Chain",`${CHAIN_ICON[w.chain]||"?"} ${w.chain}`],["TX",w.txCount],["Coins",w.coins.join(", ")],["Gesendet",fmtUSD(w.totalSent)],["Empfangen",fmtUSD(w.totalReceived)],["Netto",`<span style="color:${net?"var(--green)":"var(--red)"}">${net?"+":""}${fmtUSD(w.netFlow)}</span>`],["Counterparties",w.counterparties.slice(0,4).join(", ")||"-"]].map(([k,v])=>`<div class="dfield"><div class="dlabel">${k}</div><div class="dval">${v}</div></div>`).join("")}
+    <button class="ai-btn b" onclick="doAiWallet('${esc(w.id)}')" id="ai-w-btn">🤖 KI Wallet-Analyse</button>
+    <div id="ai-w-out"></div>
+    <div class="dlabel" style="margin:12px 0 8px">TRANSAKTIONS-HISTORIE</div>
+    ${w.history.map(h=>`
+      <div class="hist-item ${h.dir}">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:10px;font-weight:bold;color:${h.dir==="in"?"var(--green)":"var(--accent3)"}">${h.dir==="in"?"▲ IN":"▼ OUT"}</span>
+          <span style="font-size:10px;color:var(--text3)">${esc(h.time)}</span>
+        </div>
+        <div style="font-size:14px;color:var(--accent);font-weight:bold">${fmtUSD(h.usd)}</div>
+        <div style="font-size:10px;color:var(--text2)">${fmt(h.amount)} ${esc(h.coin)}</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:2px">${h.dir==="in"?"Von:":"An:"} ${esc(h.counterparty)}</div>
+        ${h.detailUrl?`<a href="${esc(h.detailUrl)}" target="_blank" style="display:inline-block;margin-top:4px;font-size:9px;color:var(--accent2);text-decoration:none;border:1px solid #00aaff33;padding:1px 5px;border-radius:2px">↗ TX</a>`:""}
+      </div>
+    `).join("")}
+  `;
+  document.getElementById("w-sheet").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+
+function saveWalletLabel(id,forceVal){
+  const val=forceVal!==undefined?forceVal:(document.getElementById("lInput")?.value.trim()||"");
+  walletLabels[id]=val;saveLabels();
+  wallets=wallets.map(w=>w.id===id?{...w,label:val}:w);
+  renderWallets();
+  openWallet(id);
+  toast(val?"Label gespeichert ✓":"Label gelöscht");
+}
+
+async function doAiWallet(id){
+  const w=wallets.find(x=>x.id===id);if(!w)return;
+  const btn=document.getElementById("ai-w-btn"),out=document.getElementById("ai-w-out");
+  btn.disabled=true;btn.innerHTML=`<span class="spinner"></span>Analysiere...`;out.innerHTML="";
+  try{
+    const txt=await callAI(`Analysiere dieses Blockchain-Wallet auf Deutsch (max 6 Sätze): Wallet: "${w.label||w.name}", Chain: ${w.chain}, TX: ${w.txCount}, Gesendet: ${fmtUSD(w.totalSent)}, Empfangen: ${fmtUSD(w.totalReceived)}, Netto: ${fmtUSD(w.netFlow)}, Coins: ${w.coins.join(", ")}, Counterparties: ${w.counterparties.slice(0,4).join(", ")}. Was für ein Wallet? Verdächtig? Marktauswirkung?`);
+    out.innerHTML=`<div class="ai-note b">${esc(txt)}</div>`;
+  }catch(err){out.innerHTML=`<div class="ai-note err">⚠ ${esc(err.message)}</div>`;}
+  btn.disabled=false;btn.innerHTML="🤖 KI Wallet-Analyse";
+}
+
+// ════════════════════════════════════════════════
+// FETCH LIVE
+// ════════════════════════════════════════════════
+async function fetchLatest(){
+  const btn=document.getElementById("fetchBtn");
+  btn.innerHTML=`<span class="spinner"></span>`;btn.disabled=true;
+  try{
+    const txt=await callAI(`Generate 3 realistic NEW Whale Alert transactions (March 22, 2026). Return ONLY a JSON array, no markdown, no explanation. Each object: id (string, 5-digit > 98540), time (HH:MM), coin (BTC/ETH/USDT/USDC), amount (number), usd (number), from (string), to (string), type (transfer/mint/dormant/exploit), chain (bitcoin/ethereum/solana), emoji (single emoji), alertLevel (0-10 integer), txHash (realistic hex), detailUrl (realistic whale-alert.io URL).`);
+    const clean=txt.replace(/```json|```/g,"").trim();
+    const entries=JSON.parse(clean);
+    const ids=new Set(db.map(e=>e.id));
+    const newOnes=entries.filter(e=>!ids.has(String(e.id))).map(e=>({...e,id:String(e.id)}));
+    if(newOnes.length>0){
+      db=[...newOnes,...db];
+      save();buildWallets();updateCounts();populateFilters();renderTx();renderWallets();renderStats();
+      toast(`+${newOnes.length} neue Einträge`);
+    }else{toast("Keine neuen Daten");}
+  }catch(err){toast("⚠ "+err.message.slice(0,60));}
+  btn.disabled=false;btn.innerHTML="↻ FETCH";
+}
+
+// ════════════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════════════
+function renderStats(){
+  const total=db.reduce((a,e)=>a+e.usd,0);
+  const cv={};db.forEach(e=>{cv[e.coin]=(cv[e.coin]||0)+e.usd;});
+  const top=Object.entries(cv).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const tc={};db.forEach(e=>{tc[e.type]=(tc[e.type]||0)+1;});
+  const btx=db.filter(e=>e.coin==="BTC");
+  const bIn=btx.filter(e=>["Coinbase","Binance","Kraken"].some(x=>e.to.includes(x))).reduce((a,e)=>a+e.usd,0);
+  const bOut=btx.filter(e=>["Coinbase","Binance","Kraken"].some(x=>e.from.includes(x))).reduce((a,e)=>a+e.usd,0);
+  document.getElementById("stats-body").innerHTML=`
+    <div class="stat-grid">
+      <div class="smini"><div class="slabel">VOLUMEN</div><div class="sval" style="color:var(--accent)">${fmtUSD(total)}</div></div>
+      <div class="smini"><div class="slabel">TRANSAKTIONEN</div><div class="sval" style="color:var(--accent2)">${db.length}</div></div>
+      <div class="smini"><div class="slabel">WALLETS</div><div class="sval" style="color:#aa44ff">${wallets.length}</div></div>
+      <div class="smini"><div class="slabel">BÖRSEN</div><div class="sval" style="color:#4488ff">${wallets.filter(w=>w.isExchange).length}</div></div>
+      <div class="smini"><div class="slabel">BTC INFLOW</div><div class="sval" style="color:var(--orange)">${fmtUSD(bIn)}</div></div>
+      <div class="smini"><div class="slabel">BTC OUTFLOW</div><div class="sval" style="color:var(--red)">${fmtUSD(bOut)}</div></div>
+    </div>
+    <div class="scard">
+      <div class="slabel" style="margin-bottom:12px">TOP COINS</div>
+      ${top.map(([c,v])=>{const pct=total>0?v/total*100:0;const cc=COIN_COLORS[c]||"#aaa";return`<div class="barrow"><div class="barlabel"><span style="color:${cc};font-weight:bold">${c}</span><span style="color:var(--text2)">${fmtUSD(v)} (${pct.toFixed(1)}%)</span></div><div class="bartrack"><div class="barfill" style="width:${pct}%;background:${cc}"></div></div></div>`;}).join("")}
+    </div>
+    <div class="scard">
+      <div class="slabel" style="margin-bottom:10px">NACH TYP</div>
+      ${Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<div class="typerow"><span style="color:var(--text2)">${TYPE_LABELS[t]||t}</span><span style="color:var(--accent);font-weight:bold">${c}</span></div>`).join("")}
+    </div>
+    <div class="scard">
+      <div class="slabel" style="margin-bottom:10px">TOP WALLETS</div>
+      ${wallets.slice(0,6).map(w=>`<div class="topr" onclick="showTab('wallets');setTimeout(()=>openWallet('${esc(w.id)}'),50)"><span class="wtype ${w.isExchange?"wex":"wan"}" style="flex-shrink:0">${w.isExchange?"B":"A"}</span><span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.label||w.name)}</span><span style="font-size:11px;color:${w.netFlow>=0?"var(--green)":"var(--red)"};font-weight:bold">${w.netFlow>=0?"+":""}${fmtUSD(w.netFlow)}</span></div>`).join("")}
+    </div>
+    <div class="scard">
+      <div class="slabel" style="margin-bottom:10px">GRÖSSTE TX</div>
+      ${[...db].sort((a,b)=>b.usd-a.usd).slice(0,5).map(e=>`<div class="topr" onclick="showTab('tx');setTimeout(()=>openTx('${esc(e.id)}'),50)"><span style="font-size:15px">${e.emoji}</span><span style="font-size:11px;font-weight:bold;color:${COIN_COLORS[e.coin]||"#aaa"};width:48px">${esc(e.coin)}</span><span style="color:var(--accent);font-weight:bold;flex:1">${fmtUSD(e.usd)}</span>${e.detailUrl?`<a href="${esc(e.detailUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent2);font-size:10px;text-decoration:none;border:1px solid #00aaff33;padding:2px 6px;border-radius:3px">↗</a>`:""}</div>`).join("")}
+    </div>`;
+}
+
+// ════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════
+function renderProviders(){
+  document.getElementById("provider-list").innerHTML=PROVIDERS.map(p=>`
+    <div class="provider-opt${providerId===p.id?" active":""}" onclick="selectProvider('${p.id}')">
+      <div class="radio-dot${providerId===p.id?" on":""}"></div>
+      <div>
+        <div class="provider-name">${p.name}</div>
+        <div class="provider-sub">${p.sub}</div>
+      </div>
+    </div>
+  `).join("");
+  document.getElementById("custom-url-row").style.display=providerId==="custom"?"block":"none";
+}
+
+function selectProvider(id){
+  providerId=id;
+  saveApiCfg();
+  renderProviders();
+}
+
+function saveApiConfig(){
+  apiKey=document.getElementById("apiKeyInput").value.trim();
+  customUrl=document.getElementById("customUrlInput").value.trim();
+  customModel=document.getElementById("customModelInput").value.trim()||"llama3";
+  saveApiCfg();
+  toast("Gespeichert ✓");
+}
+
+async function testConnection(){
+  const btn=document.getElementById("testBtn"),res=document.getElementById("testResult");
+  btn.disabled=true;btn.innerHTML=`<span class="spinner"></span>Teste...`;res.innerHTML="";
+  try{
+    const txt=await callAI('Antworte nur mit: "Verbindung OK"');
+    res.innerHTML=`<span style="color:var(--green)">✓ ${esc(txt)}</span>`;
+    toast("Verbindung OK ✓");
+  }catch(err){
+    res.innerHTML=`<span style="color:var(--red)">✕ ${esc(err.message)}</span>`;
+  }
+  btn.disabled=false;btn.innerHTML="▶ Verbindung testen";
+}
+
+function exportData(){
+  const json=JSON.stringify({db,walletLabels},null,2);
+  const blob=new Blob([json],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="whale_db_export.json";a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.db){db=d.db;save();}
+      if(d.walletLabels){walletLabels=d.walletLabels;saveLabels();}
+      buildWallets();updateCounts();populateFilters();renderTx();renderWallets();renderStats();
+      toast("Import erfolgreich");
+    }catch(err){toast("Import Fehler: "+err.message);}
+  };r.readAsText(f);
+}
+function resetData(){
+  if(!confirm("Daten zurücksetzen?"))return;
+  db=JSON.parse(JSON.stringify(SEED));walletLabels={};
+  save();saveLabels();buildWallets();updateCounts();populateFilters();renderTx();renderWallets();renderStats();
+  toast("Zurückgesetzt");
+}
+
+// ════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════
+function showTab(name,el){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("page-"+name).classList.add("active");
+  const tabs=["tx","wallets","stats","settings"];
+  const idx=tabs.indexOf(name);
+  if(idx>=0)document.querySelectorAll(".tab")[idx].classList.add("active");
+  if(el)el.classList.add("active");
+  closePanels();
+  if(name==="settings"){
+    document.getElementById("apiKeyInput").value=apiKey;
+    document.getElementById("customUrlInput").value=customUrl;
+    document.getElementById("customModelInput").value=customModel;
+    renderProviders();
+  }
+}
+function closePanels(){
+  document.getElementById("tx-sheet").classList.remove("open");
+  document.getElementById("w-sheet").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+let toastT;
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg;el.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),2400);
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+load();loadLabels();loadApiCfg();
+buildWallets();updateCounts();populateFilters();
+renderTx();renderWallets();renderStats();
+
+// Kein API Key gesetzt → direkt zu Settings
+if(!apiKey){
+  setTimeout(()=>{
+    showTab("settings");
+    document.querySelectorAll(".tab")[3].classList.add("active");
+    document.querySelectorAll(".tab")[0].classList.remove("active");
+    toast("⚙ Bitte API Key eintragen");
+  },600);
+}
+</script>
+</body>
+</html>
